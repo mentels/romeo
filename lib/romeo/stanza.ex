@@ -203,19 +203,67 @@ defmodule Romeo.Stanza do
   end
 
   def disco_items(to) do
-    iq(to, "get", xmlel(name: "query", attrs: [{"xmlns", ns_disco_items}]))
+    disco_items(to, [])
   end
+
+  def disco_items(to, attrs) do
+    iq(to, "get", xmlel(name: "query",
+          attrs: [{"xmlns", ns_disco_items}|attrs]))
+  end
+
+  def pubsub_discover(to, node) do
+    disco_items(to, [{"node", node}])
+  end
+
+  @doc """
+  Generates a stanza to create a pubsub node. (XEP-0060)
+  """
+  def pubsub_create(to, node) do
+    iq(to, "set", xmlel(
+          name: "pubsub",
+          attrs: [{"xmlns", ns_pubsub}],
+          children: [
+            xmlel(name: "create", attrs: [{"node", node}])
+          ]))
+  end
+
 
   @doc """
   Generates a stanza to join a pubsub node. (XEP-0060)
   """
-  def subscribe(to, node, jid) do
+  def pubsub_subscribe(to, node, jid) do
     iq(to, "set", xmlel(
       name: "pubsub",
       attrs: [{"xmlns", ns_pubsub}],
       children: [
         xmlel(name: "subscribe", attrs: [{"node", node}, {"jid", jid}])
       ]))
+  end
+
+  @doc """
+  Generates a stanza to publish content into a pubsub node. (XEP-0060)
+  """
+  def pubsub_publish(to, node, item) do
+    iq(to, "set", xmlel(
+          name: "pubsub",
+          attrs: [{"xmlns", ns_pubsub}],
+          children: [
+            xmlel(name: "publish", attrs: [{"node", node}], children: [item])
+          ]))
+  end
+
+  @doc """
+  Generates a stanza to retrieve a pubsub item from a pubsub node. (XEP-0060)
+  """
+  def pubsub_retrieve(to, node, ids \\ [])
+  def pubsub_retrieve(to, node, ids) do
+    items = for id <- ids, do: xmlel(name: "item", attrs: [{"id", id}])
+    iq(to, "get", xmlel(
+          name: "pubsub",
+          attrs: [{"xmlns", ns_pubsub}],
+          children: [
+            xmlel(name: "items", attrs: [{"node", node}], children: items)
+          ]))
   end
 
   @doc """
@@ -337,6 +385,6 @@ defmodule Romeo.Stanza do
   Generates a random hex string for use as an id for a stanza.
   """
   def id do
-    :crypto.strong_rand_bytes(2) |> Base.encode16(case: :lower)
+    :crypto.rand_bytes(2) |> Base.encode16(case: :lower)
   end
 end
