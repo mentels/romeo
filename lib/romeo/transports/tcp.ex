@@ -25,7 +25,7 @@ defmodule Romeo.Transports.TCP do
 
     conn = %{conn | host: host, port: port, socket_opts: socket_opts}
 
-    case :gen_tcp.connect(host, port, socket_opts ++ @socket_opts, conn.timeout) do
+    case :gen_tcp.connect(normalize_ip(host), port, socket_opts ++ @socket_opts, conn.timeout) do
       {:ok, socket} ->
         Logger.info fn -> "Established connection to #{host}" end
         parser = :fxml_stream.new(self(), :infinity, [:no_gen_server])
@@ -302,5 +302,12 @@ defmodule Romeo.Transports.TCP do
 
   defp host(jid) do
     Romeo.JID.parse(jid).server
+  end
+
+  defp normalize_ip(host) do
+    case :inet_parse.address(host) do
+      {:ok, ip} -> ip
+      _ -> host
+    end
   end
 end
